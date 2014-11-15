@@ -15,25 +15,35 @@ class Player(pygame.sprite.Sprite):
         self.image = pygame.Surface((16, 16))
         # color the surface cyan
         #self.image.fill((0, 205, 205))
-        self.image = pygame.image.load(os.path.join('images', 'player.png'))
+        self.images = []
+        self.images.append(pygame.image.load(os.path.join('images', 'p_west.png')))
+        self.images.append(pygame.image.load(os.path.join('images', 'p_north.png')))
+        self.images.append(pygame.image.load(os.path.join('images', 'p_east.png')))
+        self.images.append(pygame.image.load(os.path.join('images', 'p_south.png')))
+
+        self.image = self.images[3]
         self.rect = self.image.get_rect()
         self.speed = [0, 0]
 
     def left(self):
         self.speed[1]=0
         self.speed[0] = -4
+        self.image = self.images[0]
 
     def right(self):
         self.speed[1]=0
         self.speed[0] = 4
+        self.image = self.images[2]
 
     def up(self):
         self.speed[0]=0
         self.speed[1] = -4
+        self.image = self.images[1]
 
     def down(self):
         self.speed[0]=0
         self.speed[1] = 4
+        self.image = self.images[3]
 
     def move(self):
         # move the rect by the displacement ("speed")
@@ -70,7 +80,12 @@ class Employee(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
         # load the PNG
-        self.image = pygame.image.load(os.path.join('images', 'ball.png'))
+        self.images = []
+        self.images.append(pygame.image.load(os.path.join('images', 'e_west.png')))
+        self.images.append(pygame.image.load(os.path.join('images', 'e_north.png')))
+        self.images.append(pygame.image.load(os.path.join('images', 'e_east.png')))
+        self.images.append(pygame.image.load(os.path.join('images', 'e_south.png')))
+        self.image = self.images[2]
         self.rect = self.image.get_rect()
 
     def move(self):
@@ -81,6 +96,26 @@ class Employee(pygame.sprite.Sprite):
 
     def dir_y(self):
         return 1 if self.speed[1] > 0 else -1
+
+    def left(self):
+        self.speed[1]=0
+        self.speed[0] = -4
+        self.image = self.images[0]
+
+    def right(self):
+        self.speed[1]=0
+        self.speed[0] = 4
+        self.image = self.images[2]
+
+    def up(self):
+        self.speed[0]=0
+        self.speed[1] = -4
+        self.image = self.images[1]
+
+    def down(self):
+        self.speed[0]=0
+        self.speed[1] = 4
+        self.image = self.images[3]
 
 
 def event_loop():
@@ -139,8 +174,7 @@ def event_loop():
     #Employees (enemies)
     emp1 = Employee()
     emp1.rect.bottomleft = 0, screen_height
-    emp1.speed = [6, 0]
-    
+    emp1.speed = [4, 0]
 
     inventory= []
 
@@ -222,18 +256,16 @@ def event_loop():
                 # reverse the movement direction if enemy goes out of bounds
                 if enemy.rect.left < 0:
                     enemy.rect.left = 0
-                    enemy.speed[0] = 0
-                    enemy.speed[1] = -6
+                    enemy.up()
                 if enemy.rect.right > screen_width:
                     enemy.rect.right = screen_width
-                    enemy.speed[0] = -enemy.speed[0]
+                    enemy.left()
                 if enemy.rect.top < 0:
                     enemy.rect.top = 0
-                    enemy.speed[1] = -enemy.speed[1]
+                    enemy.down()
                 if enemy.rect.bottom > screen_height:
                     enemy.rect.bottom = screen_height
-                    enemy.speed[1] = 0
-                    enemy.speed[0] = 6
+                    enemy.right()
 
                 # Collision detection for aisles.
                 for aisle in aisles:
