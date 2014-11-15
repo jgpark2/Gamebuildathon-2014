@@ -41,13 +41,12 @@ class Aisle(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.speed = [0, 0]
 
-class Enemy(pygame.sprite.Sprite):
+class Employee(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
         # load the PNG
-        self.image = pygame.image.load(os.path.join('images', 'ball.png'))
+        self.image = pygame.image.load(os.path.join('images', 'enemy.png'))
         self.rect = self.image.get_rect()
-        self.rect.topleft = 0, 0
 
 def event_loop():
 
@@ -87,9 +86,6 @@ def event_loop():
     # initialize the score counter
     score = 0
     
-    # initialize the enemy speed
-    enemy_speed = [6, 6]
-    
     # Game State, 0- game map, 1- results screen, 2- gameover
     game_state = 0
     game_day = 1
@@ -102,7 +98,11 @@ def event_loop():
     wife = Family("Wife", 8, 2, 5, 5, 0, 5)
     son = Family("Son", 7, 2, 5, 4, 0, 3)
     dog = Family("Fido", 5, 2, 7, 4, 0, 4)
-    enemy = Enemy()
+
+    #Employees (enemies)
+    emp1 = Employee()
+    emp1.rect.bottomleft = 0, screen_height
+    emp1.speed = [6, 0]
     
 
     inventory= []
@@ -126,10 +126,8 @@ def event_loop():
         sprite_list.add(aisle)
 
     # create a sprite group for enemies only to detect collisions
-    """
     enemy_list = pygame.sprite.Group()
-    enemy_list.add(enemy)
-    """
+    enemy_list.add(emp1)
 
     # main game loop
     while 1:
@@ -172,23 +170,59 @@ def event_loop():
                 player.rect.top = 0
             if player.rect.bottom > screen_height:
                 player.rect.bottom = screen_height
-            """
-            # reverse the movement direction if enemy goes out of bounds
-            if enemy.rect.left < 0 or enemy.rect.right > screen_width:
-                enemy_speed[0] = -enemy_speed[0]
-            if enemy.rect.top < 0 or enemy.rect.bottom > screen_height:
-                enemy_speed[1] = -enemy_speed[1]
 
-            # another way to move rects
-            enemy.rect.x += enemy_speed[0]
-            enemy.rect.y += enemy_speed[1]
+            for enemy in enemy_list:
+                # reverse the movement direction if enemy goes out of bounds
+                if enemy.rect.left < 0:
+                    enemy.rect.left = 0
+                if enemy.rect.right > screen_width:
+                    enemy.rect.right = screen_width
+                if enemy.rect.top < 0:
+                    enemy.rect.top = 0
+                if enemy.rect.bottom > screen_height:
+                    enemy.rect.bottom = screen_height
+
+                # Collision detection for aisles.
+                for aisle in aisles:
+                    if enemy.rect.colliderect(aisle.rect):
+                        dx = enemy.speed[0]
+                        dy = enemy.speed[1]
+                        if dx > 0 and enemy.rect.right < aisle.rect.left:
+                            enemy.rect.right = aisle.rect.left
+                        if dx < 0 and enemy.rect.left > aisle.rect.right:
+                            enemy.rect.left = aisle.rect.right
+                        if dy > 0 and enemy.rect.bottom > aisle.rect.top:
+                            enemy.rect.bottom = aisle.rect.top
+                        if dy < 0 and enemy.rect.top < aisle.rect.bottom:
+                            enemy.rect.top = aisle.rect.bottom
+
+                # another way to move rects
+                enemy.rect.x += enemy.speed[0]
+                enemy.rect.y += enemy.speed[1]
+
+                dx = player.rect.centerx - enemy.rect.centerx
+                dy = player.rect.centery - enemy.rect.centery
+
+                if dx > 0:
+                    enemy.speed[0] = 4
+                elif dx < 0:
+                    enemy.speed[0] = -4
+                elif dx == 0:
+                    enemy.speed[0] = 0
+
+                if dy > 0:
+                    enemy.speed[1] = 4
+                elif dy < 0:
+                    enemy.speed[1] = -4
+                elif dy == 0:
+                    enemy.speed[1] = 0
 
             # detect all collisions between the player and enemy
             # but don't remove enemy after collisions
             # increment score if there was a collision
             if pygame.sprite.spritecollide(player, enemy_list, False):
                 score += 1
-            """
+            
             # Collision detection for aisles.
             for aisle in aisles:
                 if player.rect.colliderect(aisle.rect):
@@ -208,6 +242,7 @@ def event_loop():
             
             # draw the player and enemy sprites to the screen
             sprite_list.draw(screen)
+            enemy_list.draw(screen)
             
             # set up the score text
             text = basicFont.render('Score: %d' % score, True, (255, 255, 255))
