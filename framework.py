@@ -52,6 +52,10 @@ def event_loop():
     basicFont = pygame.font.SysFont(None, 48)
     # initialize a clock
     clock = pygame.time.Clock()
+    frame_count = 0
+    frame_rate = 60
+    start_time = 90
+    
     # initialize the score counter
     score = 0
     # initialize the enemy speed
@@ -97,7 +101,7 @@ def event_loop():
                     player.down()
                 elif event.key == pygame.K_DOWN:
                     player.up()
-        
+                    
         # call the move function for the player
         player.move()
 
@@ -133,31 +137,49 @@ def event_loop():
         # set up the score text
         text = basicFont.render('Score: %d' % score, True, (255, 255, 255))
         textRect = text.get_rect()
-        textRect.centerx = screen_rect.centerx
-        textRect.centery = screen_rect.centery
+        textRect.centerx = screen_rect.x
+        textRect.centery = screen_rect.y
         
         # draw the text onto the surface
         screen.blit(text, textRect)
 
         # draw the player and enemy sprites to the screen
         sprite_list.draw(screen)
+        
+        # --- Timer Draw ---
+        # Calculate total seconds
+        total_seconds = frame_count // frame_rate
+        
+        # Divide by 60 to get total minutes
+        minutes = total_seconds // 60
+        
+        # Use modulus (remainder) to get seconds
+        seconds = total_seconds % 60
+        
+        # Use python string formatting to format in leading zeros
+        output_string = "Time: {0:02}:{1:02}".format(minutes, seconds)
+        
+        # Blit to the screen
+        text = basicFont.render(output_string, True, (255,255,255))
+        screen.blit(text, [250, 250])
+        # --- Timer End ---
 
         # update the screen
         pygame.display.flip()
 
-        # limit to 45 FPS
-        clock.tick(45)
+        # limit to 60 FPS
+        clock.tick(frame_rate)
 
 def main():
     # initialize pygame
     pygame.init()
 
     # create the window
-    size = width, height = 360, 480
+    size = width, height = 640, 480
     screen = pygame.display.set_mode(size)
 
     # set the window title
-    pygame.display.set_caption("Example Framework")
+    pygame.display.set_caption("Do You Even Lift?")
 
     # create the menu
     menu = cMenu(50, 50, 20, 5, 'vertical', 100, screen,
