@@ -10,9 +10,10 @@ class Player(pygame.sprite.Sprite):
         # call the parent class (Sprite) constructor
         pygame.sprite.Sprite.__init__(self)
         # create 50px by 50px surface
-        self.image = pygame.Surface((50, 50))
+        self.image = pygame.Surface((40, 40))
         # color the surface cyan
-        self.image.fill((0, 205, 205))
+        #self.image.fill((0, 205, 205))
+        self.image = pygame.image.load(os.path.join('images', 'ball.png'))
         self.rect = self.image.get_rect()
         self.speed = [0, 0]
 
@@ -31,7 +32,15 @@ class Player(pygame.sprite.Sprite):
     def move(self):
         # move the rect by the displacement ("speed")
         self.rect = self.rect.move(self.speed)
-        
+
+class Aisle(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((250, 40))
+        self.image = pygame.image.load(os.path.join('images', 'aisle1.png'))
+        self.rect = self.image.get_rect()
+        self.speed = [0, 0]
+
 class Enemy(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
@@ -39,7 +48,6 @@ class Enemy(pygame.sprite.Sprite):
         self.image = pygame.image.load(os.path.join('images', 'ball.png'))
         self.rect = self.image.get_rect()
         self.rect.topleft = 0, 0
-
 
 def event_loop():
 
@@ -83,7 +91,7 @@ def event_loop():
     enemy_speed = [6, 6]
     
     # Game State, 0- game map, 1- results screen, 2- gameover
-    game_state = 1
+    game_state = 0
     game_day = 1
     
     # initialize the player and the enemy
@@ -96,17 +104,32 @@ def event_loop():
     dog = Family("Fido", 5, 2, 7, 4, 0, 4)
     enemy = Enemy()
     
+
     inventory= []
+
+    aisles = []
+    for i in range(0, 4):
+        aisle1 = Aisle()
+        aisle2 = Aisle()
+        offset = i*screen_height/5
+        aisle1.rect.topleft = 40, (offset+40)
+        aisle2.rect.topright = (screen_width-40), (offset+40)
+        aisles.append(aisle1)
+        aisles.append(aisle2)
 
     # create a sprite group for the player and enemy
     # so we can draw to the screen
     sprite_list = pygame.sprite.Group()
     sprite_list.add(player)
-    sprite_list.add(enemy)
+    # sprite_list.add(enemy)
+    for aisle in aisles:
+        sprite_list.add(aisle)
 
     # create a sprite group for enemies only to detect collisions
+    """
     enemy_list = pygame.sprite.Group()
     enemy_list.add(enemy)
+    """
 
     # main game loop
     while 1:
@@ -149,7 +172,7 @@ def event_loop():
                 player.rect.top = 0
             if player.rect.bottom > screen_height:
                 player.rect.bottom = screen_height
-
+            """
             # reverse the movement direction if enemy goes out of bounds
             if enemy.rect.left < 0 or enemy.rect.right > screen_width:
                 enemy_speed[0] = -enemy_speed[0]
@@ -165,6 +188,20 @@ def event_loop():
             # increment score if there was a collision
             if pygame.sprite.spritecollide(player, enemy_list, False):
                 score += 1
+            """
+            # Collision detection for aisles.
+            for aisle in aisles:
+                if player.rect.colliderect(aisle.rect):
+                    dx = player.speed[0]
+                    dy = player.speed[1]
+                    if dx > 0 and player.rect.right < aisle.rect.left:
+                        player.rect.right = aisle.rect.left
+                    if dx < 0 and player.rect.left > aisle.rect.right:
+                        player.rect.left = aisle.rect.right
+                    if dy > 0 and player.rect.bottom > aisle.rect.top:
+                        player.rect.bottom = aisle.rect.top
+                    if dy < 0 and player.rect.top < aisle.rect.bottom:
+                        player.rect.top = aisle.rect.bottom
 
             # black background
             screen.fill((0, 0, 0))
@@ -253,6 +290,7 @@ def event_loop():
                 
             # update the screen
             pygame.display.flip()
+
 
 def main():
     # initialize pygame
