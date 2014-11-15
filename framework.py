@@ -3,6 +3,8 @@ import sys
 import os
 from menu import *
 
+background = pygame.image.load(os.path.join('images', 'floor.png'))
+
 
 class Player(pygame.sprite.Sprite):
     # constructor for this class
@@ -38,10 +40,10 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.rect.move(self.speed)
 
 class Aisle(pygame.sprite.Sprite):
-    def __init__(self):
+    def __init__(self, spr):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.Surface((250, 40))
-        self.image = pygame.image.load(os.path.join('images', 'aisle1.png'))
+        self.image = pygame.image.load(os.path.join('images', spr))
         self.rect = self.image.get_rect()
         self.speed = [0, 0]
 
@@ -53,7 +55,9 @@ class Employee(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
 
 def event_loop():
-
+    def DrawBackground(background):
+        screen.blit(background, [0, 0])
+    
     class Family(pygame.sprite.Sprite):
         def __init__(self, name, hunger, thirst, heat, clean, sick, health):
             pygame.sprite.Sprite.__init__(self)
@@ -112,10 +116,12 @@ def event_loop():
     inventory= []
 
     aisles = []
-    for i in range(0, 4):
-        aisle1 = Aisle()
-        aisle2 = Aisle()
-        offset = i*screen_height/5
+    spr = ['aisle_cloth.png','aisle_drink.png','aisle_food.png','aisle_game.png','aisle_med.png','aisle_soap.png']
+    for i in range(0, 3):
+        print i
+        aisle1 = Aisle(spr[i])
+        aisle2 = Aisle(spr[3+i])
+        offset = i*screen_height/4
         aisle1.rect.topleft = 40, (offset+40)
         aisle2.rect.topright = (screen_width-40), (offset+40)
         aisles.append(aisle1)
@@ -136,6 +142,9 @@ def event_loop():
     # main game loop
     while 1:
         if game_state==0: #Main Game Room
+            # custom background
+            DrawBackground(background)
+            
             # handle input
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -253,8 +262,6 @@ def event_loop():
             if pygame.sprite.spritecollide(player, enemy_list, False):
                 score += 1
 
-            # black background
-            screen.fill((0, 0, 0))
             
             # draw the player and enemy sprites to the screen
             sprite_list.draw(screen)
