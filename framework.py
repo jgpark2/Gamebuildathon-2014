@@ -10,24 +10,28 @@ class Player(pygame.sprite.Sprite):
         # call the parent class (Sprite) constructor
         pygame.sprite.Sprite.__init__(self)
         # create 50px by 50px surface
-        self.image = pygame.Surface((40, 40))
+        self.image = pygame.Surface((16, 16))
         # color the surface cyan
         #self.image.fill((0, 205, 205))
-        self.image = pygame.image.load(os.path.join('images', 'ball.png'))
+        self.image = pygame.image.load(os.path.join('images', 'player.png'))
         self.rect = self.image.get_rect()
         self.speed = [0, 0]
 
     def left(self):
-        self.speed[0] -= 8
+        self.speed[1]=0
+        self.speed[0] = -4
 
     def right(self):
-        self.speed[0] += 8
+        self.speed[1]=0
+        self.speed[0] = 4
 
     def up(self):
-        self.speed[1] -= 8
+        self.speed[0]=0
+        self.speed[1] = -4
 
     def down(self):
-        self.speed[1] += 8
+        self.speed[0]=0
+        self.speed[1] = 4
 
     def move(self):
         # move the rect by the displacement ("speed")
@@ -138,7 +142,7 @@ def event_loop():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     sys.exit()
-
+                
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_LEFT:
                         player.left()
@@ -148,21 +152,43 @@ def event_loop():
                         player.up()
                     elif event.key == pygame.K_DOWN:
                         player.down()
-
-                elif event.type == pygame.KEYUP:
-                    if event.key == pygame.K_LEFT:
-                        player.right()
-                    elif event.key == pygame.K_RIGHT:
-                        player.left()
-                    elif event.key == pygame.K_UP:
-                        player.down()
-                    elif event.key == pygame.K_DOWN:
-                        player.up()
                         
+                
+                elif event.type == pygame.KEYUP:
+                    if event.key == pygame.K_LEFT and player.speed[0]<0:
+                        player.speed[0]=0
+                    elif event.key == pygame.K_RIGHT and player.speed[0]>0:
+                        player.speed[0]=0
+                    elif event.key == pygame.K_UP and player.speed[1]<0:
+                        player.speed[1]=0
+                    elif event.key == pygame.K_DOWN and player.speed[1]>0:
+                        player.speed[1]=0
+                
+                     
             
+                        
             # call the move function for the player
             player.move()
 
+            # Collision detection for aisles.
+            for aisle in aisles:
+                if player.rect.colliderect(aisle.rect):
+                    dx = player.speed[0]
+                    dy = player.speed[1]
+                    if dx > 0 :
+                        player.speed[0]=0
+                        player.rect.x -= dx #aisle.rect.left-1
+                    if dx < 0 :
+                        player.speed[0]=0
+                        player.rect.x -= dx #aisle.rect.right+1
+                    if dy > 0 :
+                        player.speed[1]=0
+                        player.rect.y -= dy #aisle.rect.top-1
+                    if dy < 0 :
+                        player.speed[1]=0
+                        player.rect.y -= dy #aisle.rect.bottom+1
+                        
+                        
             # check player bounds
             if player.rect.left < 0:
                 player.rect.left = 0
@@ -189,19 +215,6 @@ def event_loop():
             if pygame.sprite.spritecollide(player, enemy_list, False):
                 score += 1
             """
-            # Collision detection for aisles.
-            for aisle in aisles:
-                if player.rect.colliderect(aisle.rect):
-                    dx = player.speed[0]
-                    dy = player.speed[1]
-                    if dx > 0 and player.rect.right < aisle.rect.left:
-                        player.rect.right = aisle.rect.left
-                    if dx < 0 and player.rect.left > aisle.rect.right:
-                        player.rect.left = aisle.rect.right
-                    if dy > 0 and player.rect.bottom > aisle.rect.top:
-                        player.rect.bottom = aisle.rect.top
-                    if dy < 0 and player.rect.top < aisle.rect.bottom:
-                        player.rect.top = aisle.rect.bottom
 
             # black background
             screen.fill((0, 0, 0))
