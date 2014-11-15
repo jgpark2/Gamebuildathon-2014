@@ -18,34 +18,51 @@ class Player(pygame.sprite.Sprite):
         self.image = pygame.image.load(os.path.join('images', 'player.png'))
         self.rect = self.image.get_rect()
         self.speed = [0, 0]
+        self.dir=0
+        '''
+         1
+        0 2
+         3
+        '''
+        #initialize inventory, this is reset at the beginning of each level
+        self.inventory = { 'clothing' : 0 ,'drink' : 0, 'food' : 0, 'game':0, 'medicine':0, 'soap':0 }
 
     def left(self):
         self.speed[1]=0
         self.speed[0] = -4
+        self.dir=0
 
     def right(self):
         self.speed[1]=0
         self.speed[0] = 4
+        self.dir=2
 
     def up(self):
         self.speed[0]=0
         self.speed[1] = -4
+        self.dir=1
 
     def down(self):
         self.speed[0]=0
         self.speed[1] = 4
+        self.dir=3
 
     def move(self):
         # move the rect by the displacement ("speed")
         self.rect = self.rect.move(self.speed)
+        
+    def steal(self, type):
+        self.inventory[type]+=1
+        return
 
 class Aisle(pygame.sprite.Sprite):
-    def __init__(self, spr):
+    def __init__(self, spr, type):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.Surface((250, 40))
         self.image = pygame.image.load(os.path.join('images', spr))
         self.rect = self.image.get_rect()
         self.speed = [0, 0]
+        self.type = type
 
     # Checks whether
     def detectCollision(self, sprt):
@@ -142,17 +159,15 @@ def event_loop():
     emp1.speed = [6, 0]
     
 
-    inventory= []
-
     aisles = []
     spr = ['aisle_cloth.png','aisle_drink.png','aisle_food.png','aisle_game.png','aisle_med.png','aisle_soap.png']
+    type = ['clothing','drink','food','game','medicine','soap']
     for i in range(0, 3):
-        print i
-        aisle1 = Aisle(spr[i])
-        aisle2 = Aisle(spr[3+i])
+        aisle1 = Aisle(spr[i], type[i])
+        aisle2 = Aisle(spr[3+i], type[3+i])
         offset = i*screen_height/4
-        aisle1.rect.topleft = 40, (offset+40)
-        aisle2.rect.topright = (screen_width-40), (offset+40)
+        aisle1.rect.topleft = 40, (20+offset+40)
+        aisle2.rect.topright = (screen_width-40), (20+offset+40)
         aisles.append(aisle1)
         aisles.append(aisle2)
 
@@ -188,6 +203,14 @@ def event_loop():
                         player.up()
                     elif event.key == pygame.K_DOWN:
                         player.down()
+                    
+                    if event.key == pygame.K_SPACE and player.dir==1:
+                        print "spacebar" 
+                        # Find which aisle you are stealing from
+                        for aisle in aisles:
+                            if aisle.rect.collidepoint(player.rect.centerx, player.rect.centery-16-2):
+                                print "stealing..." +aisle.type
+                                player.steal(aisle.type)
                         
                 
                 elif event.type == pygame.KEYUP:
@@ -253,7 +276,7 @@ def event_loop():
             enemy_list.draw(screen)
             
             # set up the score text
-            text = basicFont.render('Score: %d' % score, True, (255, 255, 255))
+            text = basicFont.render('Day: %d' % game_day, True, (255, 255, 255))
             textRect = text.get_rect()
             textRect.x = screen_rect.x
             textRect.y = screen_rect.y
@@ -283,6 +306,8 @@ def event_loop():
 
             # limit to 60 FPS
             frame_count+=1
+            if frame_count>60*10: #7200:
+                game_state=1
             clock.tick(frame_rate)
             
         elif game_state==1: #Days over Results Screen
@@ -290,7 +315,15 @@ def event_loop():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     sys.exit()
-                    
+                
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        print "next day"
+                        game_state=0
+                        #reset inventory
+                        player.inventory = { 'clothing' : 0 ,'drink' : 0, 'food' : 0, 'game':0, 'medicine':0, 'soap':0 }
+                        frame_count=0
+                        game_day+=1
                     
             # black background
             screen.fill((0, 0, 0))
@@ -302,8 +335,8 @@ def event_loop():
             #list of stolen items
             screen.blit(basicFont.render("Inventory:",True, white), [120,100])
             i=1
-            for item in inventory:
-                screen.blit(basicFont.render(item[0]+" x%d" % item[1], True, white), [120,100+16*i])
+            for item, count in player.inventory.iteritems():
+                screen.blit(basicFont.render(item+" x%d" % count, True, white), [120,100+16*i])
                 i+=1
             
             #family status
@@ -331,6 +364,7 @@ def event_loop():
                 screen.blit(basicFont.render(fami.name+"'s Status: %s" % stats, True, white), [340,100+16*i])
                 i+=1
                 
+                
             # update the screen
             pygame.display.flip()
 
@@ -346,6 +380,8 @@ def main():
     # set the window title
     pygame.display.set_caption("Do You Even Lift?")
 
+    screen.blit(pygame.font.SysFont(None, 32).render("Do You Even Lift?", True, (255,255,255)), [200,100])
+    
     # create the menu
     menu = cMenu(50, 50, 20, 5, 'vertical', 100, screen,
                  [('Start Game',   1, None),
