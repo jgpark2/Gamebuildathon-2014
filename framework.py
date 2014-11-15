@@ -31,8 +31,7 @@ class Player(pygame.sprite.Sprite):
     def move(self):
         # move the rect by the displacement ("speed")
         self.rect = self.rect.move(self.speed)
-
-
+        
 class Enemy(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
@@ -43,13 +42,34 @@ class Enemy(pygame.sprite.Sprite):
 
 
 def event_loop():
+
+    class Family(pygame.sprite.Sprite):
+        def __init__(self, name, hunger, thirst, heat, clean, sick, health):
+            pygame.sprite.Sprite.__init__(self)
+            families.append(self)
+            self.name = name
+            self.mhunger = hunger
+            self.mthirst = thirst
+            self.mheat = heat
+            self.mclean = clean
+            self.sick = sick
+            self.mhealth = health
+            self.status = "Alive"
+            
+            self.hunger = self.mhunger
+            self.thirst = self.mthirst
+            self.heat = self.mheat
+            self.clean = self.mclean
+            self.health = self.mhealth
+        
+        
     # get the pygame screen and create some local vars
     screen = pygame.display.get_surface()
     screen_rect = screen.get_rect()
     screen_width = screen.get_width()
     screen_height = screen.get_height()
     # set up font
-    basicFont = pygame.font.SysFont(None, 48)
+    basicFont = pygame.font.SysFont(None, 16)
     # initialize a clock
     clock = pygame.time.Clock()
     frame_count = 0
@@ -58,12 +78,25 @@ def event_loop():
     
     # initialize the score counter
     score = 0
+    
     # initialize the enemy speed
     enemy_speed = [6, 6]
     
+    # Game State, 0- game map, 1- results screen, 2- gameover
+    game_state = 1
+    game_day = 1
+    
     # initialize the player and the enemy
     player = Player()
+    #name, hunger, thirst, heat, clean, sick, health
+    families = []
+    mother = Family("Mother-in-Law", 6, 2, 5, 3, 0, 5)
+    wife = Family("Wife", 8, 2, 5, 5, 0, 5)
+    son = Family("Son", 7, 2, 5, 4, 0, 3)
+    dog = Family("Fido", 5, 2, 7, 4, 0, 4)
     enemy = Enemy()
+    
+    inventory= []
 
     # create a sprite group for the player and enemy
     # so we can draw to the screen
@@ -77,98 +110,149 @@ def event_loop():
 
     # main game loop
     while 1:
-        # handle input
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                sys.exit()
+        if game_state==0: #Main Game Room
+            # handle input
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    sys.exit()
 
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    player.left()
-                elif event.key == pygame.K_RIGHT:
-                    player.right()
-                elif event.key == pygame.K_UP:
-                    player.up()
-                elif event.key == pygame.K_DOWN:
-                    player.down()
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_LEFT:
+                        player.left()
+                    elif event.key == pygame.K_RIGHT:
+                        player.right()
+                    elif event.key == pygame.K_UP:
+                        player.up()
+                    elif event.key == pygame.K_DOWN:
+                        player.down()
 
-            elif event.type == pygame.KEYUP:
-                if event.key == pygame.K_LEFT:
-                    player.right()
-                elif event.key == pygame.K_RIGHT:
-                    player.left()
-                elif event.key == pygame.K_UP:
-                    player.down()
-                elif event.key == pygame.K_DOWN:
-                    player.up()
+                elif event.type == pygame.KEYUP:
+                    if event.key == pygame.K_LEFT:
+                        player.right()
+                    elif event.key == pygame.K_RIGHT:
+                        player.left()
+                    elif event.key == pygame.K_UP:
+                        player.down()
+                    elif event.key == pygame.K_DOWN:
+                        player.up()
+                        
+            
+            # call the move function for the player
+            player.move()
+
+            # check player bounds
+            if player.rect.left < 0:
+                player.rect.left = 0
+            if player.rect.right > screen_width:
+                player.rect.right = screen_width
+            if player.rect.top < 0:
+                player.rect.top = 0
+            if player.rect.bottom > screen_height:
+                player.rect.bottom = screen_height
+
+            # reverse the movement direction if enemy goes out of bounds
+            if enemy.rect.left < 0 or enemy.rect.right > screen_width:
+                enemy_speed[0] = -enemy_speed[0]
+            if enemy.rect.top < 0 or enemy.rect.bottom > screen_height:
+                enemy_speed[1] = -enemy_speed[1]
+
+            # another way to move rects
+            enemy.rect.x += enemy_speed[0]
+            enemy.rect.y += enemy_speed[1]
+
+            # detect all collisions between the player and enemy
+            # but don't remove enemy after collisions
+            # increment score if there was a collision
+            if pygame.sprite.spritecollide(player, enemy_list, False):
+                score += 1
+
+            # black background
+            screen.fill((0, 0, 0))
+            
+            # draw the player and enemy sprites to the screen
+            sprite_list.draw(screen)
+            
+            # set up the score text
+            text = basicFont.render('Score: %d' % score, True, (255, 255, 255))
+            textRect = text.get_rect()
+            textRect.x = screen_rect.x
+            textRect.y = screen_rect.y
+            # draw the text onto the surface
+            screen.blit(text, textRect)
+            
+            # --- Timer Draw ---
+            # Calculate total seconds
+            total_seconds = frame_count // frame_rate
+            
+            # Divide by 60 to get total minutes
+            minutes = total_seconds // 60
+            
+            # Use modulus (remainder) to get seconds
+            seconds = total_seconds % 60
+            
+            # Use python string formatting to format in leading zeros
+            output_string = "Time: {0:02}:{1:02}".format(minutes, seconds)
+            
+            # Blit to the screen
+            text = basicFont.render(output_string, True, (255,255,255))
+            screen.blit(text, [0, 16])
+            # --- Timer End ---
+
+            # update the screen
+            pygame.display.flip()
+
+            # limit to 60 FPS
+            frame_count+=1
+            clock.tick(frame_rate)
+            
+        elif game_state==1: #Days over Results Screen
+            # handle input
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    sys.exit()
                     
-        # call the move function for the player
-        player.move()
-
-        # check player bounds
-        if player.rect.left < 0:
-            player.rect.left = 0
-        if player.rect.right > screen_width:
-            player.rect.right = screen_width
-        if player.rect.top < 0:
-            player.rect.top = 0
-        if player.rect.bottom > screen_height:
-            player.rect.bottom = screen_height
-
-        # reverse the movement direction if enemy goes out of bounds
-        if enemy.rect.left < 0 or enemy.rect.right > screen_width:
-            enemy_speed[0] = -enemy_speed[0]
-        if enemy.rect.top < 0 or enemy.rect.bottom > screen_height:
-            enemy_speed[1] = -enemy_speed[1]
-
-        # another way to move rects
-        enemy.rect.x += enemy_speed[0]
-        enemy.rect.y += enemy_speed[1]
-
-        # detect all collisions between the player and enemy
-        # but don't remove enemy after collisions
-        # increment score if there was a collision
-        if pygame.sprite.spritecollide(player, enemy_list, False):
-            score += 1
-
-        # black background
-        screen.fill((0, 0, 0))
-
-        # set up the score text
-        text = basicFont.render('Score: %d' % score, True, (255, 255, 255))
-        textRect = text.get_rect()
-        textRect.centerx = screen_rect.x
-        textRect.centery = screen_rect.y
-        
-        # draw the text onto the surface
-        screen.blit(text, textRect)
-
-        # draw the player and enemy sprites to the screen
-        sprite_list.draw(screen)
-        
-        # --- Timer Draw ---
-        # Calculate total seconds
-        total_seconds = frame_count // frame_rate
-        
-        # Divide by 60 to get total minutes
-        minutes = total_seconds // 60
-        
-        # Use modulus (remainder) to get seconds
-        seconds = total_seconds % 60
-        
-        # Use python string formatting to format in leading zeros
-        output_string = "Time: {0:02}:{1:02}".format(minutes, seconds)
-        
-        # Blit to the screen
-        text = basicFont.render(output_string, True, (255,255,255))
-        screen.blit(text, [250, 250])
-        # --- Timer End ---
-
-        # update the screen
-        pygame.display.flip()
-
-        # limit to 60 FPS
-        clock.tick(frame_rate)
+                    
+            # black background
+            screen.fill((0, 0, 0))
+            
+            white = (255,255,255)
+            screen.blit(basicFont.render('DAY %d RESULTS:' % game_day, True, white),[280,70])
+            screen.blit(basicFont.render('Score: %d' % score, True, white), [0,0])
+            
+            #list of stolen items
+            screen.blit(basicFont.render("Inventory:",True, white), [120,100])
+            i=1
+            for item in inventory:
+                screen.blit(basicFont.render(item[0]+" x%d" % item[1], True, white), [120,100+16*i])
+                i+=1
+            
+            #family status
+            i=0
+            for fami in families:
+                stats=""
+                
+                if fami.hunger < fami.mhunger/2:
+                    stats+="Hungry "
+                if fami.thirst < fami.mthirst/2:
+                    stats+="Thirsty "
+                if fami.heat < fami.mheat/2:
+                    stats+="Cold "
+                if fami.clean < fami.mclean/2:
+                    stats+="Dirty "
+                if fami.sick > 0:
+                    stats+="Sick "
+                if stats == "":
+                    stats = "Fine"
+                    
+                if fami.health<1:
+                    fami.status = "Dead"
+                if fami.status == "Dead":
+                    fami.stats = "Dead"
+                screen.blit(basicFont.render(fami.name+"'s Status: %s" % stats, True, white), [340,100+16*i])
+                i+=1
+                
+            # update the screen
+            pygame.display.flip()
 
 def main():
     # initialize pygame
