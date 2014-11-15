@@ -47,12 +47,41 @@ class Aisle(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.speed = [0, 0]
 
+    # Checks whether
+    def detectCollision(self, sprt):
+        if sprt.rect.colliderect(self.rect):
+            dx = sprt.speed[0]
+            dy = sprt.speed[1]
+            if dx > 0 :
+                sprt.speed[0]=0
+                sprt.rect.x -= dx #aisle.rect.left-1
+            if dx < 0 :
+                sprt.speed[0]=0
+                sprt.rect.x -= dx #aisle.rect.right+1
+            if dy > 0 :
+                sprt.speed[1]=0
+                sprt.rect.y -= dy #aisle.rect.top-1
+            if dy < 0 :
+                sprt.speed[1]=0
+                sprt.rect.y -= dy #aisle.rect.bottom+1
+
+
 class Employee(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
         # load the PNG
         self.image = pygame.image.load(os.path.join('images', 'ball.png'))
         self.rect = self.image.get_rect()
+
+    def move(self):
+        self.rect = self.rect.move(self.speed)
+
+    def dir_x(self):
+        return 1 if self.speed[0] > 0 else -1
+
+    def dir_y(self):
+        return 1 if self.speed[1] > 0 else -1
+
 
 def event_loop():
     def DrawBackground(background):
@@ -170,31 +199,14 @@ def event_loop():
                         player.speed[1]=0
                     elif event.key == pygame.K_DOWN and player.speed[1]>0:
                         player.speed[1]=0
-                
-                     
-            
                         
             # call the move function for the player
             player.move()
 
             # Collision detection for aisles.
             for aisle in aisles:
-                if player.rect.colliderect(aisle.rect):
-                    dx = player.speed[0]
-                    dy = player.speed[1]
-                    if dx > 0 :
-                        player.speed[0]=0
-                        player.rect.x -= dx #aisle.rect.left-1
-                    if dx < 0 :
-                        player.speed[0]=0
-                        player.rect.x -= dx #aisle.rect.right+1
-                    if dy > 0 :
-                        player.speed[1]=0
-                        player.rect.y -= dy #aisle.rect.top-1
-                    if dy < 0 :
-                        player.speed[1]=0
-                        player.rect.y -= dy #aisle.rect.bottom+1
-                        
+                aisle.detectCollision(player)
+
                         
             # check player bounds
             if player.rect.left < 0:
@@ -210,51 +222,24 @@ def event_loop():
                 # reverse the movement direction if enemy goes out of bounds
                 if enemy.rect.left < 0:
                     enemy.rect.left = 0
+                    enemy.speed[0] = 0
+                    enemy.speed[1] = -6
                 if enemy.rect.right > screen_width:
                     enemy.rect.right = screen_width
+                    enemy.speed[0] = -enemy.speed[0]
                 if enemy.rect.top < 0:
                     enemy.rect.top = 0
+                    enemy.speed[1] = -enemy.speed[1]
                 if enemy.rect.bottom > screen_height:
                     enemy.rect.bottom = screen_height
+                    enemy.speed[1] = 0
+                    enemy.speed[0] = 6
 
                 # Collision detection for aisles.
                 for aisle in aisles:
-                    if enemy.rect.colliderect(aisle.rect):
-                        dx = enemy.speed[0]
-                        dy = enemy.speed[1]
-                        if dx > 0 :
-                            enemy.speed[0]=0
-                            enemy.rect.x -= dx #aisle.rect.left-1
-                        if dx < 0 :
-                            enemy.speed[0]=0
-                            enemy.rect.x -= dx #aisle.rect.right+1
-                        if dy > 0 :
-                            enemy.speed[1]=0
-                            enemy.rect.y -= dy #aisle.rect.top-1
-                        if dy < 0 :
-                            enemy.speed[1]=0
-                            enemy.rect.y -= dy #aisle.rect.bottom+1
+                    aisle.detectCollision(enemy)
 
-                # another way to move rects
-                enemy.rect.x += enemy.speed[0]
-                enemy.rect.y += enemy.speed[1]
-
-                dx = player.rect.centerx - enemy.rect.centerx
-                dy = player.rect.centery - enemy.rect.centery
-
-                if dx > 0:
-                    enemy.speed[0] = 4
-                elif dx < 0:
-                    enemy.speed[0] = -4
-                elif dx == 0:
-                    enemy.speed[0] = 0
-
-                if dy > 0:
-                    enemy.speed[1] = 4
-                elif dy < 0:
-                    enemy.speed[1] = -4
-                elif dy == 0:
-                    enemy.speed[1] = 0
+                enemy.move()
 
             # detect all collisions between the player and enemy
             # but don't remove enemy after collisions
