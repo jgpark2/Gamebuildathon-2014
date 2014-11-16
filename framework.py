@@ -1,13 +1,19 @@
 import pygame
 import sys
 import os
+import random
 from menu import *
 
+size = width, height = 640, 480
 background = pygame.image.load(os.path.join('images', 'floor.png'))
 
 """
 Sprites from: http://untamed.wild-refuge.net/rmxpresources.php?characters
 """
+
+preset_spd=[0,2,4,3]
+num_AI=3
+
 
 class Player(pygame.sprite.Sprite):
     # constructor for this class
@@ -96,6 +102,7 @@ class Aisle(pygame.sprite.Sprite):
             if dy < 0 :
                 sprt.speed[1]=0
                 sprt.rect.y -= dy #aisle.rect.bottom+1
+            return True
 
 
 class Door(pygame.sprite.Sprite):
@@ -106,65 +113,135 @@ class Door(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
 
 class Employee(pygame.sprite.Sprite):
-    def __init__(self):
+    def __init__(self, type):
         pygame.sprite.Sprite.__init__(self)
         # load the PNG
         self.images = []
+        self.speed=[0,0]
         self.images.append(pygame.image.load(os.path.join('images', 'e_west.png')))
         self.images.append(pygame.image.load(os.path.join('images', 'e_north.png')))
         self.images.append(pygame.image.load(os.path.join('images', 'e_east.png')))
         self.images.append(pygame.image.load(os.path.join('images', 'e_south.png')))
         self.image = self.images[2]
         self.rect = self.image.get_rect()
-
+        self.dir = 0
+        self.type = type
+        self.spd = preset_spd[type]
+        self.life=0
+        
     def move(self):
         self.rect = self.rect.move(self.speed)
+        
+    def next_move(self):
+        #AI MOVEMENT
+        if self.type==0:
+            if self.life % 120 == 0:
+                self.dir+=1
+                if self.dir>3:
+                    self.dir=0
+                self.image = self.images[self.dir]
+                
+                
+        elif self.type==1:
+            if self.dir==1 and  self.rect.top < 0:
+                self.dir=3#random.randint(0,4)-1
+            elif self.dir==3 and self.rect.bottom > height:
+                self.dir=1#random.randint(0,4)-1
+            elif self.dir ==2 and self.rect.right > width:
+                self.dir=0#random.randint(0,4)-1
+            elif self.dir==0 and self.rect.left < 0:
+                self.dir=2#random.randint(0,4)-1
+            self.image = self.images[self.dir]
 
-    def dir_x(self):
-        return 1 if self.speed[0] > 0 else -1
+            self.alldir()
+            
+        elif self.type==2:
+            if self.life % 60 == 0:
+                self.dir+=1
+                if self.dir>3:
+                    self.dir=0
+                self.image = self.images[self.dir]
+            else:
+                if self.dir==1 and  self.rect.top < 0:
+                    self.dir=3#random.randint(0,4)-1
+                elif self.dir==3 and self.rect.bottom > height:
+                    self.dir=1#random.randint(0,4)-1
+                elif self.dir ==2 and self.rect.right > width:
+                    self.dir=0#random.randint(0,4)-1
+                elif self.dir==0 and self.rect.left < 0:
+                    self.dir=2#random.randint(0,4)-1
+                self.image = self.images[self.dir]
 
-    def dir_y(self):
-        return 1 if self.speed[1] > 0 else -1
-
-    def detectCaught(self, thief):
-        dx = self.speed[0]
-        dy = self.speed[1]
-
+            self.alldir()
+            
+    def checkBarrier(self,thief,aisles):
+        l= min(self.rect.centerx, thief.rect.centerx)
+        nl=max(self.rect.centerx, thief.rect.centerx)
+        t= min(self.rect.centery, thief.rect.centery)
+        nt=max(self.rect.centery, thief.rect.centery)
+        sight=pygame.Rect(l,t, nl-l, nt-t+1)
+        for aisle in aisles:
+            if sight.colliderect(aisle.rect):
+                return False
+        return True
+            
+    
+    def detectCaught(self, thief, aisles):
         if thief.hasStolen:
-            if thief.rect.centerx == self.rect.centerx:
-                if thief.rect.centery > self.rect.centery and dy > 0 and thief.rect.centery-self.rect.centery<=200:
-                    return True
-                elif thief.rect.centery < self.rect.centery and dy < 0 and self.rect.centery-thief.rect.centery<=200:
-                    return True
-            elif thief.rect.centery == self.rect.centery:
-                if thief.rect.centerx > self.rect.centerx and dx > 0 and thief.rect.centerx-self.rect.centerx<=200:
-                    return True
-                elif thief.rect.centerx < self.rect.centerx and dx < 0 and self.rect.centerx-thief.rect.centerx <=200:
-                    return True
-
+            if self.dir==0:
+                if abs(thief.rect.centery - self.rect.centery)<17 and self.rect.centerx-thief.rect.centerx>0 and self.rect.centerx-thief.rect.centerx<200:
+                    if self.checkBarrier(thief, aisles):
+                        return True
+            elif self.dir==1:
+                if abs(thief.rect.centerx - self.rect.centerx)<17 and self.rect.centery-thief.rect.centery>0 and self.rect.centery-thief.rect.centery<200:
+                    if self.checkBarrier(thief,aisles):
+                        return True
+            elif self.dir==2:
+                if abs(thief.rect.centery - self.rect.centery)<17 and thief.rect.centerx-self.rect.centerx>0 and thief.rect.centerx-self.rect.centerx<200:
+                    if self.checkBarrier(thief,aisles):
+                        return True
+            elif self.dir==3:
+                if abs(thief.rect.centerx - self.rect.centerx)<17 and thief.rect.centery-self.rect.centery>0 and thief.rect.centery-self.rect.centery<200:
+                    if self.checkBarrier(thief,aisles):
+                        return True                    
         return False
 
-    def left(self):
+    def alldir(self):
+        if self.dir==0:
+            self.left(self.spd)
+        elif self.dir==1:
+            self.up(self.spd)
+        elif self.dir==2:
+            self.right(self.spd)
+        elif self.dir==3:
+            self.down(self.spd)            
+            
+    def left(self,spd):
         self.speed[1]=0
-        self.speed[0] = -4
+        self.speed[0] = -spd
         self.image = self.images[0]
+        self.dir = 0
 
-    def right(self):
+    def right(self,spd):
         self.speed[1]=0
-        self.speed[0] = 4
+        self.speed[0] = spd
         self.image = self.images[2]
+        self.dir = 2
 
-    def up(self):
+    def up(self,spd):
         self.speed[0]=0
-        self.speed[1] = -4
+        self.speed[1] = -spd
         self.image = self.images[1]
+        self.dir = 1
 
-    def down(self):
+    def down(self,spd):
         self.speed[0]=0
-        self.speed[1] = 4
+        self.speed[1] = spd
         self.image = self.images[3]
+        self.dir = 3
 
 def event_loop():
+    parting_message = "You were caught."
     pygame.display.set_caption("Do You Even Lift?")
     def DrawBackground(background):
         screen.blit(background, [0, 0])
@@ -221,10 +298,11 @@ def event_loop():
 
     #Employees (enemies)
     enemy_list=pygame.sprite.Group()
-    emp1 = Employee()
-    emp1.rect.bottomleft = 0, screen_height
-    emp1.speed = [4, 0]
+    
+    emp1 = Employee(0)
+    emp1.rect.topleft = 300,32
     enemy_list.add(emp1)
+
 
     aisles = []
     spr = ['aisle_cloth.png','aisle_drink.png','aisle_food.png','aisle_game.png','aisle_med.png','aisle_soap.png']
@@ -253,6 +331,9 @@ def event_loop():
     
     door_list = pygame.sprite.Group()
     door_list.add(entrance)
+    
+    #load alert picture
+    myimage = pygame.image.load(os.path.join('images', "alert.png"))
 
     # main game loop
     while 1:
@@ -276,12 +357,10 @@ def event_loop():
                         player.down()
                     
                     if event.key == pygame.K_SPACE and player.dir==1:
-                        player.hasStolen = True
-
                         # Find which aisle you are stealing from
                         for aisle in aisles:
                             if aisle.rect.collidepoint(player.rect.centerx, player.rect.centery-16-2):
-                                print "stealing..." +aisle.type
+                                player.hasStolen = True
                                 player.steal(aisle.type)
                     elif event.key == pygame.K_SPACE and pygame.sprite.spritecollide(player, door_list, False):
                         game_state=1
@@ -316,27 +395,23 @@ def event_loop():
                 player.rect.bottom = screen_height
 
             for enemy in enemy_list:
-                # reverse the movement direction if enemy goes out of bounds
-                if enemy.rect.left < 0:
-                    enemy.rect.left = 0
-                    enemy.up()
-                if enemy.rect.right > screen_width:
-                    enemy.rect.right = screen_width
-                    enemy.left()
-                if enemy.rect.top < 0:
-                    enemy.rect.top = 0
-                    enemy.down()
-                if enemy.rect.bottom > screen_height:
-                    enemy.rect.bottom = screen_height
-                    enemy.right()
-
-                # Collision detection for aisles.
+                enemy.life+=1
+                
+                #collision specific detection
                 for aisle in aisles:
-                    aisle.detectCollision(enemy)
+                    if aisle.detectCollision(enemy):
+                        enemy.dir=random.randint(0,4)-1
 
+                # determine next movement based on AI
+                enemy.next_move()
+                
                 enemy.move()
 
-                if enemy.detectCaught(player):
+                if enemy.detectCaught(player,aisles):
+                    imagerect = myimage.get_rect()
+                    imagerect.top = enemy.rect.top-32
+                    imagerect.left = enemy.rect.left
+                    screen.blit(myimage, imagerect)
                     game_state = 3
             
             # draw the player and enemy sprites to the screen
@@ -375,7 +450,7 @@ def event_loop():
 
             # limit to 60 FPS
             frame_count+=1
-            if frame_count>60*10: #7200:
+            if frame_count>7200:
                 game_state=1
             clock.tick(frame_rate)
             
@@ -387,7 +462,6 @@ def event_loop():
                 
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE:
-                        print "next day"
                         game_state=0
                         #reset inventory
                         player.inventory = { 'clothing' : 0 ,'drink' : 0, 'food' : 0, 'game':0, 'medicine':0, 'soap':0 }
@@ -395,6 +469,22 @@ def event_loop():
                         game_day+=1
                         player.speed=[0,0]
                         player.rect.topleft = 340-80/2, 480-30
+                        player.hasStolen=False
+                        emp = Employee(random.randint(0,num_AI)-1)
+                        
+                        emp.rect.bottomright=random.randint(32,width), random.randint(32,height)
+                        bad_spawn=False
+                        for aisle in aisles:
+                            if emp.rect.colliderect(aisle.rect):
+                                bad_spawn=True
+                        while(bad_spawn):
+                            emp.rect.bottomright=random.randint(32,width), random.randint(32,height)
+                            bad_spawn=False
+                            for aisle in aisles:
+                                if emp.rect.colliderect(aisle.rect):
+                                    bad_spawn=True
+                        
+                        enemy_list.add(emp)
                     
             # black background
             screen.fill((0, 0, 0))
@@ -413,6 +503,9 @@ def event_loop():
             
             famsize = len(families)
             for thing in families:
+                if thing.status == "Dead":
+                    continue
+
                 thing.hunger = max(min(thing.mhunger, thing.hunger + (player.inventory["food"]/famsize)) - 1, 0)
                 thing.thirst = max(min(thing.mthirst, thing.thirst + (player.inventory["drink"]/famsize)) - 1, 0)
                 thing.heat = max(min(thing.mheat, thing.heat + (player.inventory["clothing"]/famsize)) - 1, 0)
@@ -426,6 +519,14 @@ def event_loop():
                 if thing.hunger == 0 or thing.thirst == 0 or thing.heat == 0 or thing.clean == 0:
                     thing.sick = 1
 
+            allDead = True
+            for thing in families:
+                if not(thing.status == "Dead"):
+                    allDead = False
+
+            if allDead:
+                game_state = 3
+                parting_message = "All your family died."
             #family status
             i=0
             for fami in families:
@@ -467,11 +568,16 @@ def event_loop():
 
             gameovertext = pygame.font.SysFont(None, 50).render("Game Over", True, white)
             screen.blit(gameovertext, [screen_width/2- gameovertext.get_rect().width/2,100])
-
+            partingtext = pygame.font.SysFont(None, 50).render(parting_message, True, white)
+            screen.blit(gameovertext, [screen_width/2- partingtext.get_rect().width/2,140])
             dayssurvivedtext = pygame.font.SysFont(None, 30).render('Days survived: %d' % game_day, True, white)
-            screen.blit(dayssurvivedtext, [screen_width/2- dayssurvivedtext.get_rect().width/2,140])
+            screen.blit(dayssurvivedtext, [screen_width/2- dayssurvivedtext.get_rect().width/2,180])
+
+            yolotext = pygame.font.SysFont(None, 70).render("ggnore #YOLOSWEG", True, white)
+            screen.blit(dayssurvivedtext, [screen_width/2- dayssurvivedtext.get_rect().width/2,250])
 
             pygame.display.flip()
+
 
 def instructions_page():
     pygame.display.set_caption("Instructions")
@@ -579,7 +685,6 @@ def main():
     pygame.init()
 
     # create the window
-    size = width, height = 640, 480
     screen = pygame.display.set_mode(size)
     main_menu()
 
