@@ -241,6 +241,7 @@ class Employee(pygame.sprite.Sprite):
         self.dir = 3
 
 def event_loop():
+    throughDay = False
     parting_message = "You were caught."
     pygame.display.set_caption("Do You Even Lift?")
     def DrawBackground(background):
@@ -364,6 +365,7 @@ def event_loop():
                                 player.steal(aisle.type)
                     elif event.key == pygame.K_SPACE and pygame.sprite.spritecollide(player, door_list, False):
                         game_state=1
+                        throughDay = True
                         
                 
                 elif event.type == pygame.KEYUP:
@@ -452,10 +454,12 @@ def event_loop():
             frame_count+=1
             if frame_count>7200:
                 game_state=1
+                throughDay = True
             clock.tick(frame_rate)
             
         elif game_state==1: #Days over Results Screen
             # handle input
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     sys.exit()
@@ -485,13 +489,30 @@ def event_loop():
                                     bad_spawn=True
                         
                         enemy_list.add(emp)
-                    
+
+                        for fami in families:                            
+                            numbad = 0
+                            if fami.hunger < fami.mhunger/2:
+                                numbad += 1
+                            if fami.thirst < fami.mthirst/2:
+                                numbad += 1
+                            if fami.heat < fami.mheat/2:
+                                numbad += 1
+                            if fami.clean < fami.mclean/2:
+                                numbad +=1
+                            if fami.sick > 0:
+                                fami.status = "Sick"
+                            if numbad >= 2:
+                                fami.health -= 1
+                            if fami.health<1:
+                                fami.status = "Dead"
+
             # black background
             screen.fill((0, 0, 0))
             
             white = (255,255,255)
             screen.blit(basicFont.render('DAY %d RESULTS:' % game_day, True, white),[280,70])
-            screen.blit(basicFont.render('Score: %d' % score, True, white), [0,0])
+            #screen.blit(basicFont.render('Score: %d' % score, True, white), [0,0])
             screen.blit(basicFont.render('Press SPACE to continue', True, white),[280,400])
             
             #list of stolen items
@@ -501,32 +522,28 @@ def event_loop():
                 screen.blit(basicFont.render(item+" x%d" % count, True, white), [120,100+16*i])
                 i+=1
             
-            famsize = len(families)
-            for thing in families:
-                if thing.status == "Dead":
-                    continue
+            if throughDay:
+                famsize = len(families)
+                for thing in families:
+                    if thing.status == "Dead":
+                        continue
 
-                thing.hunger = max(min(thing.mhunger, thing.hunger + (player.inventory["food"]/famsize)) - 1, 0)
-                thing.thirst = max(min(thing.mthirst, thing.thirst + (player.inventory["drink"]/famsize)) - 1, 0)
-                thing.heat = max(min(thing.mheat, thing.heat + (player.inventory["clothing"]/famsize)) - 1, 0)
-                thing.clean = max(min(thing.mclean, thing.clean + (player.inventory["soap"]/famsize)) - 1, 0)
-                
-                if thing.sick == 1:
-                    if player.inventory["medicine"] > 0:
-                        thing.sick = 0
-                        player.inventory["medicine"] -= 1
+                    thing.hunger = max(min(thing.mhunger, thing.hunger + (player.inventory["food"]/famsize)) - 1, 0)
+                    thing.thirst = max(min(thing.mthirst, thing.thirst + (player.inventory["drink"]/famsize)) - 1, 0)
+                    thing.heat = max(min(thing.mheat, thing.heat + (player.inventory["clothing"]/famsize)) - 1, 0)
+                    thing.clean = max(min(thing.mclean, thing.clean + (player.inventory["soap"]/famsize)) - 1, 0)
+                    
+                    if thing.sick == 1:
+                        if player.inventory["medicine"] > 0:
+                            thing.sick = 0
+                            player.inventory["medicine"] -= 1
 
-                if thing.hunger == 0 or thing.thirst == 0 or thing.heat == 0 or thing.clean == 0:
-                    thing.sick = 1
+                    if thing.hunger == 0 or thing.thirst == 0 or thing.heat == 0 or thing.clean == 0:
+                        thing.sick = 1
 
-            allDead = True
-            for thing in families:
-                if not(thing.status == "Dead"):
-                    allDead = False
+                throughDay = False
 
-            if allDead:
-                game_state = 3
-                parting_message = "All your family died."
+
             #family status
             i=0
             for fami in families:
@@ -544,15 +561,23 @@ def event_loop():
                     stats+="Sick "
                 if stats == "":
                     stats = "Fine"
-                    
-                if fami.health<1:
-                    fami.status = "Dead"
+
                 if fami.status == "Dead":
-                    fami.stats = "Dead"
+                    stats = "Dead"
+
                 screen.blit(basicFont.render(fami.name+"'s Status: %s" % stats, True, white), [340,100+16*i])
                 i+=1
-                
-                
+
+
+            allDead = True
+            for thing in families:
+                if not(thing.status == "Dead"):
+                    allDead = False
+
+            if allDead:
+                game_state = 3
+                parting_message = "All your family died."
+
             # update the screen
             pygame.display.flip()
 
@@ -569,12 +594,12 @@ def event_loop():
             gameovertext = pygame.font.SysFont(None, 50).render("Game Over", True, white)
             screen.blit(gameovertext, [screen_width/2- gameovertext.get_rect().width/2,100])
             partingtext = pygame.font.SysFont(None, 50).render(parting_message, True, white)
-            screen.blit(gameovertext, [screen_width/2- partingtext.get_rect().width/2,140])
+            screen.blit(partingtext, [screen_width/2- partingtext.get_rect().width/2,140])
             dayssurvivedtext = pygame.font.SysFont(None, 30).render('Days survived: %d' % game_day, True, white)
             screen.blit(dayssurvivedtext, [screen_width/2- dayssurvivedtext.get_rect().width/2,180])
 
             yolotext = pygame.font.SysFont(None, 70).render("ggnore #YOLOSWEG", True, white)
-            screen.blit(dayssurvivedtext, [screen_width/2- dayssurvivedtext.get_rect().width/2,250])
+            screen.blit(yolotext, [screen_width/2- yolotext.get_rect().width/2,250])
 
             pygame.display.flip()
 
@@ -591,8 +616,11 @@ def instructions_page():
                     main_menu()
 
         instructions_text1 = "Steal items to help your hapless family."
+        instructions_text8 = "Your family grows sicker with each day that passes."
         instructions_text2 = "Press SPACE in front of an aisle to steal from it."
+        instructions_text9 = "You can't steal again for a short while after stealing something."
         instructions_text3 = "Avoid the gaze of the guards."
+        instructions_text7 = "Press SPACE in the exit to leave before the end of the day."
         instructions_text4 = "The game is over if they see you."
         instructions_text5 = "The game is over if your family dies."
         instructions_text6 = "#YOLO"
@@ -603,20 +631,26 @@ def instructions_page():
         instructions4 = pygame.font.SysFont(None, 30).render(instructions_text4, True, (255,255,255))
         instructions5 = pygame.font.SysFont(None, 30).render(instructions_text5, True, (255,255,255))
         instructions6 = pygame.font.SysFont(None, 30).render(instructions_text6, True, (255,255,255))
+        instructions7 = pygame.font.SysFont(None, 30).render(instructions_text7, True, (255,255,255))
+        instructions8 = pygame.font.SysFont(None, 30).render(instructions_text8, True, (255,255,255))
+        instructions9 = pygame.font.SysFont(None, 30).render(instructions_text9, True, (255,255,255))
 
         screen2 = pygame.display.get_surface()
         screen2.blit(instructions1, [10, 10])
-        screen2.blit(instructions2, [10, 40])
-        screen2.blit(instructions3, [10, 70])
-        screen2.blit(instructions4, [10, 100])
-        screen2.blit(instructions5, [10, 130])
-        screen2.blit(instructions6, [10, 170])
+        screen2.blit(instructions8, [10, 40])
+        screen2.blit(instructions2, [10, 70])
+        screen2.blit(instructions9, [10, 100])
+        screen2.blit(instructions3, [10, 130])
+        screen2.blit(instructions7, [10, 160])
+        screen2.blit(instructions4, [10, 190])
+        screen2.blit(instructions5, [10, 220])
+        screen2.blit(instructions6, [10, 250])
 
         act1 = pygame.font.SysFont(None, 20).render("Press SPACE to start game.", True, (255,255,255))
         act2 = pygame.font.SysFont(None, 20).render("Press BACKSPACE to go back to the menu.", True, (255,255,255))
 
-        screen2.blit(act1, [10, 230])
-        screen2.blit(act2, [10, 250])
+        screen2.blit(act1, [10, 300])
+        screen2.blit(act2, [10, 320])
         pygame.display.flip()
 
 def main_menu():
