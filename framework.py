@@ -25,6 +25,8 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.speed = [0, 0]
         self.dir=0
+
+        self.hasStolen = False
         '''
          1
         0 2
@@ -113,6 +115,24 @@ class Employee(pygame.sprite.Sprite):
 
     def dir_y(self):
         return 1 if self.speed[1] > 0 else -1
+
+    def detectCaught(self, thief):
+        dx = self.speed[0]
+        dy = self.speed[1]
+
+        if thief.hasStolen:
+            if thief.rect.centerx == self.rect.centerx:
+                if thief.rect.centery > self.rect.centery and dy > 0 and thief.rect.centery-self.rect.centery<=200:
+                    return True
+                elif thief.rect.centery < self.rect.centery and dy < 0 and self.rect.centery-thief.rect.centery<=200:
+                    return True
+            elif thief.rect.centery == self.rect.centery:
+                if thief.rect.centerx > self.rect.centerx and dx > 0 and thief.rect.centerx-self.rect.centerx<=200:
+                    return True
+                elif thief.rect.centerx < self.rect.centerx and dx < 0 and self.rect.centerx-thief.rect.centerx <=200:
+                    return True
+
+        return False
 
     def left(self):
         self.speed[1]=0
@@ -240,6 +260,7 @@ def event_loop():
                     
                     if event.key == pygame.K_SPACE and player.dir==1:
                         print "spacebar" 
+                        player.hasStolen = True
                         # Find which aisle you are stealing from
                         for aisle in aisles:
                             if aisle.rect.collidepoint(player.rect.centerx, player.rect.centery-16-2):
@@ -295,6 +316,9 @@ def event_loop():
                     aisle.detectCollision(enemy)
 
                 enemy.move()
+
+                if enemy.detectCaught(player):
+                    game_state = 3
 
             # detect all collisions between the player and enemy
             # but don't remove enemy after collisions
@@ -398,6 +422,21 @@ def event_loop():
                 
                 
             # update the screen
+            pygame.display.flip()
+
+        # Game over
+        elif game_state == 3:
+            pygame.time.wait(1000)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    sys.exit()
+            screen.fill((0, 0, 0))
+
+            screen.blit(pygame.font.SysFont(None, 50).render("Game Over", True, (255,255,255)), [240,100])
+
+            white = (255,255,255)
+            screen.blit(pygame.font.SysFont(None, 30).render('Days survived: %d' % game_day, True, white),[255,150])
+
             pygame.display.flip()
 
 
