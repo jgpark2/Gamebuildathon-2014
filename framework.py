@@ -335,8 +335,16 @@ def event_loop():
     #load alert picture
     myimage = pygame.image.load(os.path.join('images', "alert.png"))
 
+    space_delay=0
+    progressbar = pygame.Surface((100,10))
+    
     # main game loop
     while 1:
+        space_delay-=1
+        if space_delay<1:
+            space_delay=0
+            
+            
         if game_state==0: #Main Game Room
             # custom background
             DrawBackground(background)
@@ -346,7 +354,7 @@ def event_loop():
                 if event.type == pygame.QUIT:
                     sys.exit()
                 
-                elif event.type == pygame.KEYDOWN:
+                elif event.type == pygame.KEYDOWN and space_delay==0:
                     if event.key == pygame.K_LEFT:
                         player.left()
                     elif event.key == pygame.K_RIGHT:
@@ -361,7 +369,9 @@ def event_loop():
                         for aisle in aisles:
                             if aisle.rect.collidepoint(player.rect.centerx, player.rect.centery-16-2):
                                 player.hasStolen = True
+                                space_delay=100
                                 player.steal(aisle.type)
+                                
                     elif event.key == pygame.K_SPACE and pygame.sprite.spritecollide(player, door_list, False):
                         game_state=1
                         
@@ -456,6 +466,7 @@ def event_loop():
             
         elif game_state==1: #Days over Results Screen
             # handle input
+            
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     sys.exit()
@@ -490,6 +501,8 @@ def event_loop():
             screen.fill((0, 0, 0))
             
             white = (255,255,255)
+            if space_delay>1:
+                screen.blit(basicFont.render("Stealing...", True, (255,255,255)), [player.rect.right, player.rect.bottom])
             screen.blit(basicFont.render('DAY %d RESULTS:' % game_day, True, white),[280,70])
             screen.blit(basicFont.render('Score: %d' % score, True, white), [0,0])
             screen.blit(basicFont.render('Press SPACE to continue', True, white),[280,400])
