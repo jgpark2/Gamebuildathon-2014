@@ -342,6 +342,9 @@ def event_loop():
     # main game loop
     while 1:
         space_delay-=1
+        if space_delay==0:
+            player.dir=3
+            player.image = player.images[3]
         if space_delay<1:
             space_delay=0
             
@@ -370,7 +373,7 @@ def event_loop():
                         for aisle in aisles:
                             if aisle.rect.collidepoint(player.rect.centerx, player.rect.centery-16-2):
                                 player.hasStolen = True
-                                space_delay=100
+                                space_delay=80
                                 player.steal(aisle.type)
                                 
                     elif event.key == pygame.K_SPACE and pygame.sprite.spritecollide(player, door_list, False):
