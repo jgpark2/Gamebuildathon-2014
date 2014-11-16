@@ -462,7 +462,7 @@ def event_loop():
 
             # limit to 60 FPS
             frame_count+=1
-            if frame_count>7200:
+            if frame_count>6000:
                 game_state=1
                 throughDay = True
             clock.tick(frame_rate)
