@@ -5,6 +5,9 @@ from menu import *
 
 background = pygame.image.load(os.path.join('images', 'floor.png'))
 
+"""
+Sprites from: http://untamed.wild-refuge.net/rmxpresources.php?characters
+"""
 
 class Player(pygame.sprite.Sprite):
     # constructor for this class
@@ -21,10 +24,10 @@ class Player(pygame.sprite.Sprite):
         self.images.append(pygame.image.load(os.path.join('images', 'p_east.png')))
         self.images.append(pygame.image.load(os.path.join('images', 'p_south.png')))
 
-        self.image = self.images[3]
+        self.image = self.images[1]
         self.rect = self.image.get_rect()
         self.speed = [0, 0]
-        self.dir=0
+        self.dir=1
 
         self.hasStolen = False
         '''
@@ -161,8 +164,8 @@ class Employee(pygame.sprite.Sprite):
         self.speed[1] = 4
         self.image = self.images[3]
 
-
 def event_loop():
+    pygame.display.set_caption("Do You Even Lift?")
     def DrawBackground(background):
         screen.blit(background, [0, 0])
     
@@ -184,7 +187,6 @@ def event_loop():
             self.heat = self.mheat
             self.clean = self.mclean
             self.health = self.mhealth
-        
         
     # get the pygame screen and create some local vars
     screen = pygame.display.get_surface()
@@ -209,6 +211,7 @@ def event_loop():
     # initialize the player and the enemy
     player = Player()
     player.rect.topleft = 340-80/2, 480-30
+
     #name, hunger, thirst, heat, clean, sick, health
     families = []
     mother = Family("Mother-in-Law", 6, 2, 5, 3, 0, 5)
@@ -217,9 +220,11 @@ def event_loop():
     dog = Family("Fido", 5, 2, 7, 4, 0, 4)
 
     #Employees (enemies)
+    enemy_list=pygame.sprite.Group()
     emp1 = Employee()
     emp1.rect.bottomleft = 0, screen_height
     emp1.speed = [4, 0]
+    enemy_list.add(emp1)
 
     aisles = []
     spr = ['aisle_cloth.png','aisle_drink.png','aisle_food.png','aisle_game.png','aisle_med.png','aisle_soap.png']
@@ -245,8 +250,6 @@ def event_loop():
         sprite_list.add(aisle)
 
     # create a sprite group for enemies only to detect collisions
-    enemy_list = pygame.sprite.Group()
-    enemy_list.add(emp1)
     
     door_list = pygame.sprite.Group()
     door_list.add(entrance)
@@ -335,13 +338,6 @@ def event_loop():
 
                 if enemy.detectCaught(player):
                     game_state = 3
-
-            # detect all collisions between the player and enemy
-            # but don't remove enemy after collisions
-            # increment score if there was a collision
-            if pygame.sprite.spritecollide(player, enemy_list, False):
-                score += 1
-
             
             # draw the player and enemy sprites to the screen
             door_list.draw(screen)
@@ -415,6 +411,21 @@ def event_loop():
                 screen.blit(basicFont.render(item+" x%d" % count, True, white), [120,100+16*i])
                 i+=1
             
+            famsize = len(families)
+            for thing in families:
+                thing.hunger = max(min(thing.mhunger, thing.hunger + (player.inventory["food"]/famsize)) - 1, 0)
+                thing.thirst = max(min(thing.mthirst, thing.thirst + (player.inventory["drink"]/famsize)) - 1, 0)
+                thing.heat = max(min(thing.mheat, thing.heat + (player.inventory["clothing"]/famsize)) - 1, 0)
+                thing.clean = max(min(thing.mclean, thing.clean + (player.inventory["soap"]/famsize)) - 1, 0)
+                
+                if thing.sick == 1:
+                    if player.inventory["medicine"] > 0:
+                        thing.sick = 0
+                        player.inventory["medicine"] -= 1
+
+                if thing.hunger == 0 or thing.thirst == 0 or thing.heat == 0 or thing.clean == 0:
+                    thing.sick = 1
+
             #family status
             i=0
             for fami in families:
@@ -452,31 +463,68 @@ def event_loop():
                     sys.exit()
             screen.fill((0, 0, 0))
 
-            screen.blit(pygame.font.SysFont(None, 50).render("Game Over", True, (255,255,255)), [240,100])
-
             white = (255,255,255)
-            screen.blit(pygame.font.SysFont(None, 30).render('Days survived: %d' % game_day, True, white),[255,150])
+
+            gameovertext = pygame.font.SysFont(None, 50).render("Game Over", True, white)
+            screen.blit(gameovertext, [screen_width/2- gameovertext.get_rect().width/2,100])
+
+            dayssurvivedtext = pygame.font.SysFont(None, 30).render('Days survived: %d' % game_day, True, white)
+            screen.blit(dayssurvivedtext, [screen_width/2- dayssurvivedtext.get_rect().width/2,140])
 
             pygame.display.flip()
 
+def instructions_page():
+    pygame.display.set_caption("Instructions")
+    while 1:
+        pygame.display.get_surface().fill((0,0,0))
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    event_loop()
+                elif event.key == pygame.K_BACKSPACE:
+                    main_menu()
 
-def main():
-    # initialize pygame
-    pygame.init()
+        instructions_text1 = "Steal items to help your hapless family."
+        instructions_text2 = "Press SPACE in front of an aisle to steal from it."
+        instructions_text3 = "Avoid the gaze of the guards."
+        instructions_text4 = "The game is over if they see you."
+        instructions_text5 = "The game is over if your family dies."
+        instructions_text6 = "#YOLO"
 
-    # create the window
-    size = width, height = 640, 480
-    screen = pygame.display.set_mode(size)
+        instructions1 = pygame.font.SysFont(None, 30).render(instructions_text1, True, (255,255,255))
+        instructions2 = pygame.font.SysFont(None, 30).render(instructions_text2, True, (255,255,255))
+        instructions3 = pygame.font.SysFont(None, 30).render(instructions_text3, True, (255,255,255))
+        instructions4 = pygame.font.SysFont(None, 30).render(instructions_text4, True, (255,255,255))
+        instructions5 = pygame.font.SysFont(None, 30).render(instructions_text5, True, (255,255,255))
+        instructions6 = pygame.font.SysFont(None, 30).render(instructions_text6, True, (255,255,255))
 
+        screen2 = pygame.display.get_surface()
+        screen2.blit(instructions1, [10, 10])
+        screen2.blit(instructions2, [10, 40])
+        screen2.blit(instructions3, [10, 70])
+        screen2.blit(instructions4, [10, 100])
+        screen2.blit(instructions5, [10, 130])
+        screen2.blit(instructions6, [10, 170])
+
+        act1 = pygame.font.SysFont(None, 20).render("Press SPACE to start game.", True, (255,255,255))
+        act2 = pygame.font.SysFont(None, 20).render("Press BACKSPACE to go back to the menu.", True, (255,255,255))
+
+        screen2.blit(act1, [10, 230])
+        screen2.blit(act2, [10, 250])
+        pygame.display.flip()
+
+def main_menu():
     # set the window title
     pygame.display.set_caption("Do You Even Lift?")
-
-    screen.blit(pygame.font.SysFont(None, 32).render("Do You Even Lift?", True, (255,255,255)), [200,100])
+    pygame.display.get_surface().fill((0,0,0))
+    titletext = pygame.font.SysFont(None, 32).render("Do You Even Lift?", True, (255,255,255))
+    screen = pygame.display.get_surface()
+    screen.blit(titletext, [640/2 - titletext.get_rect().width/2,100])
     
     # create the menu
     menu = cMenu(50, 50, 20, 5, 'vertical', 100, screen,
                  [('Start Game',   1, None),
-                  ('Other Option', 2, None),
+                  ('Instructions', 2, None),
                   ('Exit',         3, None)])
     # center the menu
     menu.set_center(True, True)
@@ -510,8 +558,9 @@ def main():
                 event_loop()
             elif state == 2:
                 # just to demonstrate how to make other options
-                pygame.display.set_caption("y u touch this")
-                state = 0
+                #pygame.display.set_caption("y u touch this")
+                instructions_page()
+
             else:
                 # exit the game and program
                 pygame.quit()
@@ -523,7 +572,16 @@ def main():
                 sys.exit()
 
             # update the screen
-            pygame.display.update(rect_list)
+            pygame.display.update(rect_list)   
+
+def main():
+    # initialize pygame
+    pygame.init()
+
+    # create the window
+    size = width, height = 640, 480
+    screen = pygame.display.set_mode(size)
+    main_menu()
 
 if __name__ == '__main__':
     main()
