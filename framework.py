@@ -93,6 +93,13 @@ class Aisle(pygame.sprite.Sprite):
                 sprt.rect.y -= dy #aisle.rect.bottom+1
 
 
+class Door(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((80, 30))
+        self.image = pygame.image.load(os.path.join('images', 'entrance.png'))
+        self.rect = self.image.get_rect()
+
 class Employee(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
@@ -181,6 +188,7 @@ def event_loop():
     
     # initialize the player and the enemy
     player = Player()
+    player.rect.topleft = 340-80/2, 480-30
     #name, hunger, thirst, heat, clean, sick, health
     families = []
     mother = Family("Mother-in-Law", 6, 2, 5, 3, 0, 5)
@@ -205,6 +213,9 @@ def event_loop():
         aisles.append(aisle1)
         aisles.append(aisle2)
 
+    entrance = Door()
+    entrance.rect.topleft = 340-80/2, 480-30
+    
     # create a sprite group for the player and enemy
     # so we can draw to the screen
     sprite_list = pygame.sprite.Group()
@@ -216,6 +227,9 @@ def event_loop():
     # create a sprite group for enemies only to detect collisions
     enemy_list = pygame.sprite.Group()
     enemy_list.add(emp1)
+    
+    door_list = pygame.sprite.Group()
+    door_list.add(entrance)
 
     # main game loop
     while 1:
@@ -239,12 +253,13 @@ def event_loop():
                         player.down()
                     
                     if event.key == pygame.K_SPACE and player.dir==1:
-                        print "spacebar" 
                         # Find which aisle you are stealing from
                         for aisle in aisles:
                             if aisle.rect.collidepoint(player.rect.centerx, player.rect.centery-16-2):
                                 print "stealing..." +aisle.type
                                 player.steal(aisle.type)
+                    elif event.key == pygame.K_SPACE and pygame.sprite.spritecollide(player, door_list, False):
+                        game_state=1
                         
                 
                 elif event.type == pygame.KEYUP:
@@ -304,6 +319,7 @@ def event_loop():
 
             
             # draw the player and enemy sprites to the screen
+            door_list.draw(screen)
             sprite_list.draw(screen)
             enemy_list.draw(screen)
             
@@ -356,6 +372,8 @@ def event_loop():
                         player.inventory = { 'clothing' : 0 ,'drink' : 0, 'food' : 0, 'game':0, 'medicine':0, 'soap':0 }
                         frame_count=0
                         game_day+=1
+                        player.speed=[0,0]
+                        player.rect.topleft = 340-80/2, 480-30
                     
             # black background
             screen.fill((0, 0, 0))
@@ -363,6 +381,7 @@ def event_loop():
             white = (255,255,255)
             screen.blit(basicFont.render('DAY %d RESULTS:' % game_day, True, white),[280,70])
             screen.blit(basicFont.render('Score: %d' % score, True, white), [0,0])
+            screen.blit(basicFont.render('Press SPACE to continue', True, white),[280,400])
             
             #list of stolen items
             screen.blit(basicFont.render("Inventory:",True, white), [120,100])
