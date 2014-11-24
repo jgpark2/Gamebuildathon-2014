@@ -14,6 +14,11 @@ Sprites from: http://untamed.wild-refuge.net/rmxpresources.php?characters
 preset_spd=[0,2,4,3]
 num_AI=3
 
+# font vars
+basicFont=0
+basicFont20=0
+basicFont30=0
+basicFont50=0
 
 class Player(pygame.sprite.Sprite):
     # constructor for this class
@@ -271,8 +276,6 @@ def event_loop():
     screen_rect = screen.get_rect()
     screen_width = screen.get_width()
     screen_height = screen.get_height()
-    # set up font
-    basicFont = pygame.font.SysFont(None, 16)
     # initialize a clock
     clock = pygame.time.Clock()
     frame_count = 0
@@ -323,10 +326,11 @@ def event_loop():
     # create a sprite group for the player and enemy
     # so we can draw to the screen
     sprite_list = pygame.sprite.Group()
+    background_list = pygame.sprite.Group()
     sprite_list.add(player)
     # sprite_list.add(enemy)
     for aisle in aisles:
-        sprite_list.add(aisle)
+        background_list.add(aisle)
 
     # create a sprite group for enemies only to detect collisions
     
@@ -334,7 +338,7 @@ def event_loop():
     door_list.add(entrance)
     
     #load alert picture
-    myimage = pygame.image.load(os.path.join('images', "alert.png"))
+    image_alerted = pygame.image.load(os.path.join('images', "alert.png"))
 
     space_delay=0
     progressbar = pygame.Surface((100,10))
@@ -409,6 +413,8 @@ def event_loop():
             if player.rect.bottom > screen_height:
                 player.rect.bottom = screen_height
 
+            background_list.draw(screen)
+            
             for enemy in enemy_list:
                 enemy.life+=1
                 
@@ -423,10 +429,10 @@ def event_loop():
                 enemy.move()
 
                 if enemy.detectCaught(player,aisles):
-                    imagerect = myimage.get_rect()
+                    imagerect = image_alerted.get_rect()
                     imagerect.top = enemy.rect.top-32
                     imagerect.left = enemy.rect.left
-                    screen.blit(myimage, imagerect)
+                    screen.blit(image_alerted, imagerect)
                     game_state = 3
             
             # draw the player and enemy sprites to the screen
@@ -460,6 +466,10 @@ def event_loop():
             screen.blit(text, [0, 16])
             # --- Timer End ---
 
+            #Draw OVERLAY objs, stealing text, UI, ...
+            if space_delay>1:
+                screen.blit(basicFont.render("Stealing...", True, (255,255,255)), [player.rect.right, player.rect.bottom])
+                
             # update the screen
             pygame.display.flip()
 
@@ -524,8 +534,6 @@ def event_loop():
             screen.fill((0, 0, 0))
             
             white = (255,255,255)
-            if space_delay>1:
-                screen.blit(basicFont.render("Stealing...", True, (255,255,255)), [player.rect.right, player.rect.bottom])
             screen.blit(basicFont.render('DAY %d RESULTS:' % game_day, True, white),[280,70])
             #screen.blit(basicFont.render('Score: %d' % score, True, white), [0,0])
             screen.blit(basicFont.render('Press SPACE to continue', True, white),[280,400])
@@ -599,21 +607,28 @@ def event_loop():
         # Game over
         elif game_state == 3:
             pygame.time.wait(1000)
+            
+            # handle input
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     sys.exit()
+                    
+                elif event.type == pygame.KEYDOWN and space_delay==0:
+                    if event.key == pygame.K_SPACE:
+                         main_menu()
+                    
             screen.fill((0, 0, 0))
 
             white = (255,255,255)
 
-            gameovertext = pygame.font.SysFont(None, 50).render("Game Over", True, white)
+            gameovertext = basicFont50.render("Game Over", True, white)
             screen.blit(gameovertext, [screen_width/2- gameovertext.get_rect().width/2,100])
-            partingtext = pygame.font.SysFont(None, 50).render(parting_message, True, white)
+            partingtext = basicFont50.render(parting_message, True, white)
             screen.blit(partingtext, [screen_width/2- partingtext.get_rect().width/2,140])
-            dayssurvivedtext = pygame.font.SysFont(None, 30).render('Days survived: %d' % game_day, True, white)
+            dayssurvivedtext = basicFont30.render('Days survived: %d' % game_day, True, white)
             screen.blit(dayssurvivedtext, [screen_width/2- dayssurvivedtext.get_rect().width/2,180])
 
-            yolotext = pygame.font.SysFont(None, 70).render("ggnore #YOLOSWEG", True, white)
+            yolotext = basicFont20.render("Press SPACE to return to Title", True, white)
             screen.blit(yolotext, [screen_width/2- yolotext.get_rect().width/2,250])
 
             pygame.display.flip()
@@ -640,15 +655,15 @@ def instructions_page():
         instructions_text5 = "The game is over if your family dies."
         instructions_text6 = "#YOLO"
 
-        instructions1 = pygame.font.SysFont(None, 30).render(instructions_text1, True, (255,255,255))
-        instructions2 = pygame.font.SysFont(None, 30).render(instructions_text2, True, (255,255,255))
-        instructions3 = pygame.font.SysFont(None, 30).render(instructions_text3, True, (255,255,255))
-        instructions4 = pygame.font.SysFont(None, 30).render(instructions_text4, True, (255,255,255))
-        instructions5 = pygame.font.SysFont(None, 30).render(instructions_text5, True, (255,255,255))
-        instructions6 = pygame.font.SysFont(None, 30).render(instructions_text6, True, (255,255,255))
-        instructions7 = pygame.font.SysFont(None, 30).render(instructions_text7, True, (255,255,255))
-        instructions8 = pygame.font.SysFont(None, 30).render(instructions_text8, True, (255,255,255))
-        instructions9 = pygame.font.SysFont(None, 30).render(instructions_text9, True, (255,255,255))
+        instructions1 = basicFont30.render(instructions_text1, True, (255,255,255))
+        instructions2 = basicFont30.render(instructions_text2, True, (255,255,255))
+        instructions3 = basicFont30.render(instructions_text3, True, (255,255,255))
+        instructions4 = basicFont30.render(instructions_text4, True, (255,255,255))
+        instructions5 = basicFont30.render(instructions_text5, True, (255,255,255))
+        instructions6 = basicFont30.render(instructions_text6, True, (255,255,255))
+        instructions7 = basicFont30.render(instructions_text7, True, (255,255,255))
+        instructions8 = basicFont30.render(instructions_text8, True, (255,255,255))
+        instructions9 = basicFont30.render(instructions_text9, True, (255,255,255))
 
         screen2 = pygame.display.get_surface()
         screen2.blit(instructions1, [10, 10])
@@ -661,8 +676,8 @@ def instructions_page():
         screen2.blit(instructions5, [10, 220])
         screen2.blit(instructions6, [10, 250])
 
-        act1 = pygame.font.SysFont(None, 20).render("Press SPACE to start game.", True, (255,255,255))
-        act2 = pygame.font.SysFont(None, 20).render("Press BACKSPACE to go back to the menu.", True, (255,255,255))
+        act1 = basicFont20.render("Press SPACE to start game.", True, (255,255,255))
+        act2 = basicFont20.render("Press BACKSPACE to go back to the menu.", True, (255,255,255))
 
         screen2.blit(act1, [10, 300])
         screen2.blit(act2, [10, 320])
@@ -672,9 +687,7 @@ def main_menu():
     # set the window title
     pygame.display.set_caption("Do You Even Lift?")
     pygame.display.get_surface().fill((0,0,0))
-    titletext = pygame.font.SysFont(None, 32).render("Do You Even Lift?", True, (255,255,255))
     screen = pygame.display.get_surface()
-    screen.blit(titletext, [640/2 - titletext.get_rect().width/2,100])
     
     # create the menu
     menu = cMenu(50, 50, 20, 5, 'vertical', 100, screen,
@@ -685,6 +698,9 @@ def main_menu():
     menu.set_center(True, True)
     menu.set_alignment('center', 'center')
 
+    titletext = basicFont30.render("Do You Even Lift?", True, (255,255,255))
+    screen.blit(titletext, [640/2 - titletext.get_rect().width/2,100])
+    
     # state variables for the finite state machine menu
     state = 0
     prev_state = 1
@@ -727,11 +743,22 @@ def main_menu():
                 sys.exit()
 
             # update the screen
-            pygame.display.update(rect_list)   
+            #pygame.display.update(rect_list)   
+            pygame.display.flip()
 
 def main():
     # initialize pygame
     pygame.init()
+
+    # set up font
+    global basicFont
+    basicFont = pygame.font.Font("freesansbold.ttf", 16)
+    global basicFont20
+    basicFont20 = pygame.font.Font("freesansbold.ttf", 20)
+    global basicFont30
+    basicFont30 = pygame.font.Font("freesansbold.ttf", 30)
+    global basicFont50
+    basicFont50 = pygame.font.Font("freesansbold.ttf", 50)
 
     # create the window
     screen = pygame.display.set_mode(size)
